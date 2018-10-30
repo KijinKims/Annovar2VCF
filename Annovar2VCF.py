@@ -43,10 +43,14 @@ def stack_position(row, file_obj):
 		chr_write(row["Chr"], file_obj)
 		file_obj.write('\t'+str(row["Start"]-1)+'\t'+str(row["Start"]-1)+'\n')
 
-def main():
+def run(args):
 	#default tab-delimited file
 	#input file parsing
-	raw_input_file = open(sys.argv[1])
+	try:
+		raw_input_file_name = str(args.input[0])
+		raw_input_file = open(raw_input_file_name, "r")
+	except IOError as e:
+		print '[ERROR] Cannot read input file: ', raw_input_file_name
 	
 	df = pd.read_table(raw_input_file, header=0, dtype={'Chr':object})
 	df = df.fillna('.')
@@ -55,7 +59,12 @@ def main():
 	df = df.assign(_variant_type=df.apply(set_variant_type, axis=1))
 	
 	#make retrieve_seq_from_fasta.pl input file
-	ref_fasta_file_location = sys.argv[2]
+	try:
+		ref_fasta_file_location = str(args.reference_fasta[0])
+		ref_fasta_file_for_test = open(ref_fasta_file_location, "r")
+        except IOError as e:
+                print '[ERROR] Cannot read reference fasta file: ', ref_fasta_file_location
+
 	rsff_input_file = open("temp_for_rsff.txt","w")
 	df.apply(stack_position, axis=1, file_obj=rsff_input_file)
 	
@@ -87,7 +96,7 @@ def main():
 			pass #error
 	
 	##export as vcf form
-	export_vcf = open(sys.argv[3],"w")
+	export_vcf = open(str(args.output[0]),"w")
 	
 	#header
 	export_vcf.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO")
@@ -108,5 +117,14 @@ def main():
 		write_line=[str(x) for x in write_line]
 		export_vcf.write('\t'.join(write_line)+'\n')
 
-if __name__ == "__main__":
-	main()
+VERSION = "0.0.1"
+parser = argparse.ArgumentParser(prog="Annovar2VCF", description="This is Annovar2VCF %s. It is developed for converting the Annovar-like format into generic VCF format.\nKijin Kim, 2018.\n skkujin@gmail.com" % VERSION)
+parser.add_argument('--version', action='version', version='%(prog)s ' + VERSION)
+parser.add_argument('--input','-i', action='store', required=True, metavar='sample.txt',nargs=1,  help="Tab-delimited Annovar-like format")
+parser.add_argument('--output','-o' ,action='store', required=True, metavar='sample.vcf',nargs=1,  help="VCF file to write")
+parser.add_argument('--reference_fasta','-r', action='store', required=True, metavar='GRCH37.fa',nargs=1,  help="Reference fasta with 'chr' on chromosome number for identifying reference sequences of indels")
+parser.set_defaults(func=run)
+
+args = parser.parse_args()
+args.func(args)
+
