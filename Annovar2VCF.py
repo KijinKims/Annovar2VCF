@@ -67,10 +67,13 @@ def run(args):
 
 	rsff_input_file = open("temp_for_rsff.txt","w")
 	df.apply(stack_position, axis=1, file_obj=rsff_input_file)
+	rsff_input_file = open("temp_for_rsff.txt","r")
 	
 	#run retrieve_seq_from_fasta.pl
-	run_args=["retrieve_seq_from_fasta.pl", "-format", "tab", "-seqfile", ref_fasta_file_location, "./temp_for_rsff.txt", "-outfile", "./result_rsff.txt", "--verbose"]
-	#subprocess.Popen(run_args)
+	retrieve_args=["retrieve_seq_from_fasta.pl", "-format", "tab", "-seqfile", ref_fasta_file_location, "./temp_for_rsff.txt", "-outfile", "./result_rsff.txt", "--verbose"]
+
+	p=subprocess.Popen(retrieve_args)
+	p.communicate()
 	
 	#replace sequence using result
 	with open("result_rsff.txt") as result_file:
